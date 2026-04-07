@@ -14,12 +14,52 @@ public class Player {
         this.inventory = new HashMap<>();
     }
 
+    // getters and setters
     public double getGold() { return gold; }
     public City getCurrentCity() { return currentCity; }
-    public Map<Item, Integer> getInventory { return inventory; }
+    public Map<Item, Integer> getInventory() { return inventory; }
 
     public void setCurrentCity(City currentCity) { this.currentCity = currentCity; }
     public void setGold(double gold) { this.gold = gold; }
+
+    public boolean buy(Item item, Market market) {
+        double price = market.getPrice(item);
+        if (gold < price) {
+            System.out.println("Not enough gold!");
+            return false;
+        }
+        gold -= price;
+        inventory.put(item, inventory.getOrDefault(item, 0) + 1);
+        market.onBuy(item);
+        return true;
+    }
+
+    public boolean sell(Item item, Market market) {
+        if (inventory.getOrDefault(item, 0) <= 0) {
+            System.out.println("You don't have that item!");
+            return false;
+        }
+        double price = market.getPrice(item);
+        gold += price;
+        inventory.put(item, inventory.getOrDefault(item, 0) - 1);
+        market.onSell(item);
+        return true;
+    }
+
+    public boolean travel(City destination, double travelCost) {
+        if (gold < travelCost) {
+            System.out.println("Not enough gold to travel!");
+            return false;
+        }
+        if (destination == currentCity) {
+            System.out.println("You're already in " + destination.getName() + "!");
+            return false;
+        }
+        gold -= travelCost;
+        currentCity = destination;
+        System.out.println("Travelled to " + destination.getName() + "!");
+        return true;
+    }
 
     @Override
     public String toString() {
