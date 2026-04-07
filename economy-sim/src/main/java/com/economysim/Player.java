@@ -63,6 +63,6 @@ public class Player {
 
     @Override
     public String toString() {
-        return "Player | Gold: " + gold + "g | City: " + currentCity.getName();
+        return "Player | Gold: " + Math.round(gold * 100.0) / 100.0 + "g | City: " + currentCity.getName();
     }
 }

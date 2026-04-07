@@ -24,7 +24,7 @@ public class EventManager {
                     + " in " + affectedMarket.getCity().getName() + "! Prices up 30%!");
         } else {
             affectedMarket.applyEventMultiplier(affectedItem, 0.7);
-            System.out.println("EVENT: high demand for " + affectedItem.getName()
+            System.out.println("EVENT: surplus for " + affectedItem.getName()
                     + " in " + affectedMarket.getCity().getName() + "! Prices down 30%!");
         }
     }
