@@ -7,9 +7,9 @@ import java.util.Scanner;
 
 public class Game {
     private static final int MAX_DAYS = 30;
-    private static final double WIN_GOLD = 1000.0;
-    private static final double STARTING_GOLD = 200.0;
-    private static final double TRAVEL_COST = 10.0;
+    private static final double WIN_GOLD = 750.0;
+    private static final double STARTING_GOLD = 450.0;
+    private static final double TRAVEL_COST = 5.0;
 
     private Player player;
     private List<Item> items;
@@ -18,6 +18,8 @@ public class Game {
     private EventManager eventManager;
     private Scanner scanner;
     private int currentDay;
+    private SaveManager saveManager;
+    private boolean gameReset = false;
 
     public Game() {
         this.items = new ArrayList<>();
@@ -26,6 +28,7 @@ public class Game {
         this.eventManager = new EventManager();
         this.scanner = new Scanner(System.in);
         this.currentDay = 1;
+        this.saveManager = new SaveManager();
         initializeGame();
     }
 
@@ -56,6 +59,16 @@ public class Game {
 
     public void start() {
         System.out.println("=== ECONOMY SIM ===");
+        if (saveManager.hasSave()) {
+            System.out.println("Saved file found! (1: Load game, 2: New game)");
+            System.out.print(">> ");
+            int loadChoice = scanner.nextInt();
+            if (loadChoice == 1) {
+                int[] dayWrapper = {currentDay};
+                saveManager.load(player, markets, items, cities, dayWrapper);
+                currentDay = dayWrapper[0];
+            }
+        }
         System.out.println("Reach " + WIN_GOLD + "g in " + MAX_DAYS + " days!");
         System.out.println("Starting gold: " + STARTING_GOLD + "g\n");
 
@@ -70,22 +83,25 @@ public class Game {
                 System.out.println("You reached " + WIN_GOLD + "g! You win!");
                 return;
             }
-            for (Market market: markets) {
-                market.recordPrices();
-                market.dailyPriceUpdate();
+            if (!gameReset) {
+                for (Market market: markets) {
+                    market.recordPrices();
+                    market.dailyPriceUpdate();
+                }
+                currentDay++;
             }
-            currentDay++;
+
         }
         System.out.println("Time's up! Final gold: " + player.getGold() + "g");
     }
 
     private void playDay() {
         player.resetActions();
-//        clearScreen();
         printPlayerStats();
         boolean dayEnded = false;
 
         while (!dayEnded && player.hasActions(1)) {
+            gameReset = false;
             printMenu();
             System.out.print(">> ");
             int choice = scanner.nextInt();
@@ -95,8 +111,11 @@ public class Game {
                 case 3 -> { if (handleTravel()) dayEnded = true; }
                 case 4 -> printMarket();
                 case 5 -> dayEnded = true;
+                case 6 -> saveManager.save(player, markets, currentDay);
+                case 7 -> resetGame();
                 default -> System.out.println("Invalid choice.");
             }
+            if (gameReset) return;
         }
     }
 
@@ -108,6 +127,8 @@ public class Game {
         System.out.println("3. Travel (ends day)");
         System.out.println("4. View market");
         System.out.println("5. End day");
+        System.out.println("6. Save game");
+        System.out.println("7. Reset game");
     }
 
     private void handleBuy() {
@@ -218,6 +239,22 @@ public class Game {
             System.out.println("   " + items.get(i).getName() + ": " + qty);
         }
         System.out.println("====================");
+    }
+
+    private void resetGame() {
+        System.out.println("Are you sure? (1: Yes, 2: No)");
+        System.out.print(">> ");
+        int confirm = scanner.nextInt();
+        if (confirm == 1) {
+            gameReset = true;
+            saveManager.deleteSave();
+            items.clear();
+            cities.clear();
+            markets.clear();
+            currentDay = 1;
+            initializeGame();
+            System.out.println("Game reset!");
+        }
     }
 }
 

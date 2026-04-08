@@ -85,6 +85,10 @@ public class Market {
         }
     }
 
+    public Map<Item, Double> getPrices() {
+        return prices;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
