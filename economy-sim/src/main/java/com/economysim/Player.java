@@ -7,6 +7,8 @@ public class Player {
     private double gold;
     private City currentCity;
     private Map<Item, Integer> inventory;
+    private int actionsRemaining;
+    public static final int ACTIONS_PER_DAY = 5;
 
     public Player(double startingGold, City startingCity) {
         this.gold = startingGold;
@@ -59,6 +61,23 @@ public class Player {
         currentCity = destination;
         System.out.println("Travelled to " + destination.getName() + "!");
         return true;
+    }
+
+    // action handling methods
+    public void resetActions() {
+        actionsRemaining = ACTIONS_PER_DAY;
+    }
+
+    public boolean hasActions(int cost) {
+        return actionsRemaining >= cost;
+    }
+
+    public void useActions(int cost) {
+        actionsRemaining -= cost;
+    }
+
+    public int getActionsRemaining() {
+        return actionsRemaining;
     }
 
     @Override

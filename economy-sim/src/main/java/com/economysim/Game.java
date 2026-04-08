@@ -70,18 +70,22 @@ public class Game {
                 System.out.println("You reached " + WIN_GOLD + "g! You win!");
                 return;
             }
+            for (Market market: markets) {
+                market.recordPrices();
+                market.dailyPriceUpdate();
+            }
             currentDay++;
         }
         System.out.println("Time's up! Final gold: " + player.getGold() + "g");
     }
 
     private void playDay() {
-        clearScreen();
-        System.out.println("\n--- Day " + currentDay + " ---");
-        System.out.println(player);
+        player.resetActions();
+//        clearScreen();
+        printPlayerStats();
         boolean dayEnded = false;
 
-        while (!dayEnded) {
+        while (!dayEnded && player.hasActions(1)) {
             printMenu();
             System.out.print(">> ");
             int choice = scanner.nextInt();
@@ -97,7 +101,7 @@ public class Game {
     }
 
     private void printMenu() {
-        clearScreen();
+//        clearScreen();
         System.out.println("\nWhat will you do?");
         System.out.println("1. Buy");
         System.out.println("2. Sell");
@@ -115,7 +119,20 @@ public class Game {
             System.out.println("Invalid item.");
             return;
         }
-        player.buy(items.get(choice), getMarketForCity(player.getCurrentCity()));
+        System.out.println("How many?");
+        System.out.print(">> ");
+        int qty = scanner.nextInt();
+        if (qty <= 0) {
+            System.out.println("Invalid quantity.");
+            return;
+        }
+        boolean anySuccess = false;
+        for (int i = 0; i < qty; i++) {
+            boolean success = player.buy(items.get(choice), getMarketForCity(player.getCurrentCity()));
+            if (!success) break;
+            anySuccess = true;
+        }
+        if (anySuccess) player.useActions(1);
     }
 
     private void handleSell() {
@@ -131,7 +148,20 @@ public class Game {
             System.out.println("Invalid item.");
             return;
         }
-        player.sell(items.get(choice), getMarketForCity(player.getCurrentCity()));
+        System.out.println("How many?");
+        System.out.print(">> ");
+        int qty = scanner.nextInt();
+        if (qty <= 0) {
+            System.out.println("Invalid quantity.");
+            return;
+        }
+        boolean anySuccess = false;
+        for (int i = 0; i < qty; i++) {
+            boolean success = player.sell(items.get(choice), getMarketForCity(player.getCurrentCity()));
+            if (!success) break;
+            anySuccess = true;
+        }
+        if (anySuccess) player.useActions(1);
     }
 
     private boolean handleTravel() {
@@ -150,12 +180,15 @@ public class Game {
 
     private void printMarket() {
         Market market = getMarketForCity(player.getCurrentCity());
-        System.out.println(market);
+        // System.out.println(market);
+        assert market != null;
+        System.out.println("Market in: " + market.getCity().getName());
         for (int i = 0; i < items.size(); i++) {
-            assert market != null;
             System.out.println((i + 1) + ". " + items.get(i).getName()
-            + ". " + market.getPrice(items.get(i)) + "g");
+                    + ": " + market.getPrice(items.get(i)) + "g"
+                    + " | history: " + market.getPriceHistory(items.get(i)));
         }
+
     }
 
     private Market getMarketForCity(City city) {
@@ -173,8 +206,18 @@ public class Game {
         }
     }
 
-    private double round(double value) {
-        return Math.round(value * 100.0) / 100.0;
+    private void printPlayerStats() {
+        System.out.println("====================");
+        System.out.println(" Day: " + currentDay + "/" + MAX_DAYS);
+        System.out.println(" Gold: " + Math.round(player.getGold() * 100.0) / 100.0 + "g");
+        System.out.println(" Location: " + player.getCurrentCity().getName());
+        System.out.println(" Actions: " + player.getActionsRemaining() + "/" + Player.ACTIONS_PER_DAY);
+        System.out.println(" Inventory:");
+        for (int i = 0; i < items.size(); i++) {
+            int qty = player.getInventory().getOrDefault(items.get(i), 0);
+            System.out.println("   " + items.get(i).getName() + ": " + qty);
+        }
+        System.out.println("====================");
     }
 }
 

@@ -1,18 +1,23 @@
 package com.economysim;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Market {
     private City city;
     private Map<Item, Double> prices;
     private static final double SPECIALTY_DISCOUNT = 0.7;
+    private Map<Item, List<Double>> priceHistory;
+    private static final int HISTORY_LENGTH = 5;
+    private Random random = new Random();
 
     public Market(City city, List<Item> allItems) {
         this.city = city;
         this.prices = new HashMap<>();
         initializePrices(allItems);
+        this.priceHistory = new HashMap<>();
+        for (Item item: allItems) {
+            priceHistory.put(item, new ArrayList<>());
+        }
     }
 
     private void initializePrices(List<Item> allItems) {
@@ -47,6 +52,37 @@ public class Market {
     public void applyEventMultiplier(Item item, double multiplier) {
         double currentPrice = prices.get(item);
         prices.put(item, Math.round(currentPrice * multiplier * 100.0) / 100.0);
+    }
+
+    public void recordPrices() {
+        for (Item item: prices.keySet()) {
+            List<Double> history = priceHistory.get(item);
+            history.add(prices.get(item));
+            if (history.size() > HISTORY_LENGTH) {
+                history.removeFirst();
+            }
+        }
+    }
+
+    public List<Double> getPriceHistory(Item item) {
+        return priceHistory.getOrDefault(item, new ArrayList<>());
+    }
+
+    public void dailyPriceUpdate() {
+        for (Item item: prices.keySet()) {
+            double currentPrice = prices.get(item);
+            double basePrice = item.getBasePrice();
+
+            // nudge 10% back toward base price
+            double reverted = currentPrice + (basePrice - currentPrice) * 0.1;
+
+            // random noise +-5%
+            double noise = 1.0 + (random.nextDouble() * 0.1 - 0.05);
+            double newPrice = Math.round(reverted * noise * 100.0) / 100.0;
+
+            // floor at 50% of base price
+            prices.put(item, Math.max(newPrice, basePrice * 0.5));
+        }
     }
 
     @Override
