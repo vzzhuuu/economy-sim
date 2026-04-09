@@ -162,7 +162,9 @@ public class Game {
         System.out.println("your inventory:");
         for (int i = 0; i < items.size(); i++) {
             int quantity = player.getInventory().getOrDefault(items.get(i), 0);
-            System.out.println((i+1) + ". " + items.get(i).getName() + ": " + quantity);
+            if (quantity > 0) {
+                System.out.println((i+1) + ". " + items.get(i).getName() + ": " + quantity);
+            }
         }
         System.out.println("Enter item number to sell:");
         System.out.print(">> ");
@@ -237,8 +239,10 @@ public class Game {
         System.out.println(" Actions: " + player.getActionsRemaining() + "/" + Player.ACTIONS_PER_DAY);
         System.out.println(" Inventory:");
         for (int i = 0; i < items.size(); i++) {
-            int qty = player.getInventory().getOrDefault(items.get(i), 0);
-            System.out.println("   " + items.get(i).getName() + ": " + qty);
+            int quantity = player.getInventory().getOrDefault(items.get(i), 0);
+            if (quantity > 0) {
+                System.out.println((i+1) + ". " + items.get(i).getName() + ": " + quantity);
+            }
         }
         System.out.println("====================");
     }
