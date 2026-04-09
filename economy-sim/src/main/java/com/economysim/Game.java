@@ -6,10 +6,10 @@ import java.util.Scanner;
 
 
 public class Game {
-    private static final int MAX_DAYS = 30;
-    private static final double WIN_GOLD = 750.0;
-    private static final double STARTING_GOLD = 450.0;
-    private static final double TRAVEL_COST = 5.0;
+    private static final int MAX_DAYS = 60;
+    private static final double WIN_GOLD = 2000.0;
+    private static final double STARTING_GOLD = 600.0;
+    private static final double TRAVEL_COST = 15.0;
 
     private Player player;
     private List<Item> items;
@@ -34,25 +34,27 @@ public class Game {
 
     private void initializeGame() {
         // items
-        Item wheat = new Item("Wheat", 10.0);
-        Item silk = new Item("Silk", 50.0);
-        Item spice = new Item("Spice", 30.0);
-        items.add(wheat);
-        items.add(silk);
-        items.add(spice);
+        Item rum = new Item("Rum", 40.0);
+        Item tobacco = new Item("Tobacco", 25.0);
+        Item tea = new Item("Tea", 60.0);
+        Item cotton = new Item("Cotton", 15.0);
+        Item spice = new Item("Spice", 80.0);
+        Item silk = new Item("Silk", 70.0);
+        Item cannon = new Item("Cannon", 120.0);
+        items.addAll(List.of(rum, tobacco, tea, cotton, spice, silk, cannon));
 
         // cities
-        City london = new City("London", wheat);
-        City venice = new City("Venice", silk);
-        City cairo = new City("Cairo", spice);
-        cities.add(london);
-        cities.add(venice);
-        cities.add(cairo);
+        City london = new City("London", List.of(cotton, tobacco));
+        City havana = new City("Havana", List.of(rum, cannon));
+        City alexandria = new City("Alexandria", List.of(spice, silk));
+        City bombay = new City("Bombay", List.of(tea, spice));
+        City lisbon = new City("Lisbon", List.of(rum, cotton));
+        cities.addAll(List.of(london, havana, alexandria, bombay, lisbon));
 
         // markets
-        markets.add(new Market(london, items));
-        markets.add(new Market(venice, items));
-        markets.add(new Market(cairo, items));
+        for (City city : cities) {
+            markets.add(new Market(city, items));
+        }
 
         player = new Player(STARTING_GOLD, london);
     }

@@ -5,7 +5,7 @@ import java.util.*;
 public class Market {
     private City city;
     private Map<Item, Double> prices;
-    private static final double SPECIALTY_DISCOUNT = 0.7;
+    private static final double SPECIALTY_DISCOUNT = 0.65;
     private Map<Item, List<Double>> priceHistory;
     private static final int HISTORY_LENGTH = 5;
     private Random random = new Random();
@@ -22,7 +22,7 @@ public class Market {
 
     private void initializePrices(List<Item> allItems) {
         for (Item item: allItems) {
-            if (item == city.getSpecialtyItem()) {
+            if (city.isSpecialty(item)) {
                 prices.put(item, item.getBasePrice() * SPECIALTY_DISCOUNT);
             } else {
                 prices.put(item, item.getBasePrice());
