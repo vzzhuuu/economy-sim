@@ -59,7 +59,7 @@ public class Market {
             List<Double> history = priceHistory.get(item);
             history.add(prices.get(item));
             if (history.size() > HISTORY_LENGTH) {
-                history.removeFirst();
+                history.remove(0);
             }
         }
     }
