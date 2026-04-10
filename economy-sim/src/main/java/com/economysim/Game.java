@@ -1,15 +1,12 @@
 package com.economysim;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
-
+import java.util.*;
 
 public class Game {
     private static final int MAX_DAYS = 60;
     private static final double WIN_GOLD = 2000.0;
     private static final double STARTING_GOLD = 600.0;
-    private static final double TRAVEL_COST = 15.0;
+    private static final double TRAVEL_COST = 10.0;
 
     private Player player;
     private List<Item> items;
@@ -20,6 +17,7 @@ public class Game {
     private int currentDay;
     private SaveManager saveManager;
     private boolean gameReset = false;
+    private Map<String, Map<String, Integer>> distances;
 
     public Game() {
         this.items = new ArrayList<>();
@@ -57,6 +55,46 @@ public class Game {
         }
 
         player = new Player(STARTING_GOLD, london);
+        initializeDistances();
+    }
+
+    private void initializeDistances() {
+        distances = new HashMap<>();
+
+        // London connections
+        distances.put("London", new HashMap<>());
+        distances.get("London").put("Lisbon", 1);
+        distances.get("London").put("Havana", 2);
+        distances.get("London").put("Alexandria", 2);
+        distances.get("London").put("Bombay", 3);
+
+        // Lisbon connections
+        distances.put("Lisbon", new HashMap<>());
+        distances.get("Lisbon").put("London", 1);
+        distances.get("Lisbon").put("Havana", 1);
+        distances.get("Lisbon").put("Alexandria", 2);
+        distances.get("Lisbon").put("Bombay", 3);
+
+        // Havana connections
+        distances.put("Havana", new HashMap<>());
+        distances.get("Havana").put("Lisbon", 1);
+        distances.get("Havana").put("London", 2);
+        distances.get("Havana").put("Alexandria", 3);
+        distances.get("Havana").put("Bombay", 3);
+
+        // Alexandria connections
+        distances.put("Alexandria", new HashMap<>());
+        distances.get("Alexandria").put("London", 2);
+        distances.get("Alexandria").put("Lisbon", 2);
+        distances.get("Alexandria").put("Bombay", 1);
+        distances.get("Alexandria").put("Havana", 3);
+
+        // Bombay connections
+        distances.put("Bombay", new HashMap<>());
+        distances.get("Bombay").put("Alexandria", 1);
+        distances.get("Bombay").put("London", 3);
+        distances.get("Bombay").put("Lisbon", 3);
+        distances.get("Bombay").put("Havana", 3);
     }
 
     public void start() {
@@ -108,13 +146,10 @@ public class Game {
             System.out.print(">> ");
             int choice = scanner.nextInt();
             switch (choice) {
-                case 1 -> handleBuy();
-                case 2 -> handleSell();
-                case 3 -> { if (handleTravel()) dayEnded = true; }
-                case 4 -> printMarket();
-                case 5 -> dayEnded = true;
-                case 6 -> saveManager.save(player, markets, currentDay);
-                case 7 -> resetGame();
+                case 1 -> handleTradeMenu();
+                case 2 -> { if (handleTravel()) dayEnded = true; }
+                case 3 -> handleShipMenu();
+                case 4 -> dayEnded = true;
                 default -> System.out.println("Invalid choice.");
             }
             if (gameReset) return;
@@ -122,15 +157,11 @@ public class Game {
     }
 
     private void printMenu() {
-//        clearScreen();
         System.out.println("\nWhat will you do?");
-        System.out.println("1. Buy");
-        System.out.println("2. Sell");
-        System.out.println("3. Travel (ends day)");
-        System.out.println("4. View market");
-        System.out.println("5. End day");
-        System.out.println("6. Save game");
-        System.out.println("7. Reset game");
+        System.out.println("1. Trade");
+        System.out.println("2. Travel");
+        System.out.println("3. Ship");
+        System.out.println("4. End day");
     }
 
     private void handleBuy() {
@@ -192,7 +223,11 @@ public class Game {
     private boolean handleTravel() {
         System.out.println("Choose destination:");
         for (int i = 0; i < cities.size(); i++) {
-            System.out.println((i + 1) + ". " + cities.get(i).getName());
+            City dest = cities.get(i);
+            int dist = distances.get(player.getCurrentCity().getName()).getOrDefault(dest.getName(), 99);
+            boolean canReach = dist <= player.getShip().getRange();
+            System.out.println((i + 1) + ". " + dest.getName() + " (distance: " + dist + ")"
+                    + (canReach ? "" : " [out of range]"));
         }
         System.out.print(">> ");
         int choice =scanner.nextInt() - 1;
@@ -200,12 +235,53 @@ public class Game {
             System.out.println("Invalid city.");
             return false;
         }
-        return player.travel(cities.get(choice), TRAVEL_COST);
+        City dest = cities.get(choice);
+        int dist = distances.get(player.getCurrentCity().getName()).getOrDefault(dest.getName(), 99);
+        if (dist > player.getShip().getRange()) {
+            System.out.println("Your ship can't reach that far! Upgrade your ship.");
+            return false;
+        }
+        return player.travel(dest, TRAVEL_COST * dist);
+    }
+
+    private void handleTradeMenu() {
+        System.out.println("\n--- Trade ---");
+        System.out.println("1. Buy");
+        System.out.println("2. Sell");
+        System.out.println("3. View market");
+        System.out.println("4. Back");
+        System.out.print(">> ");
+        int choice = scanner.nextInt();
+        switch (choice) {
+            case 1 -> handleBuy();
+            case 2 -> handleSell();
+            case 3 -> printMarket();
+            case 4 -> {}
+            default -> System.out.println("Invalid choice.");
+        }
+    }
+
+    private void handleShipMenu() {
+        System.out.println("\n--- Ship ---");
+        System.out.println("1. View ship");
+        System.out.println("2. Upgrade ship");
+        System.out.println("3. Save game");
+        System.out.println("4. Reset game");
+        System.out.println("5. Back");
+        System.out.print(">> ");
+        int choice = scanner.nextInt();
+        switch (choice) {
+            case 1 -> System.out.println(player.getShip());
+            case 2 -> player.getShip().upgrade(player);
+            case 3 -> saveManager.save(player, markets, currentDay);
+            case 4 -> resetGame();
+            case 5 -> {}
+            default -> System.out.println("Invalid choice.");
+        }
     }
 
     private void printMarket() {
         Market market = getMarketForCity(player.getCurrentCity());
-        // System.out.println(market);
         assert market != null;
         System.out.println("Market in: " + market.getCity().getName());
         for (int i = 0; i < items.size(); i++) {

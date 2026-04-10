@@ -9,22 +9,30 @@ public class Player {
     private Map<Item, Integer> inventory;
     private int actionsRemaining;
     public static final int ACTIONS_PER_DAY = 5;
+    private Ship ship;
 
     public Player(double startingGold, City startingCity) {
         this.gold = startingGold;
         this.currentCity = startingCity;
         this.inventory = new HashMap<>();
+        this.ship = new Ship();
     }
 
     // getters and setters
     public double getGold() { return gold; }
     public City getCurrentCity() { return currentCity; }
     public Map<Item, Integer> getInventory() { return inventory; }
+    public Ship getShip() { return ship; }
 
     public void setCurrentCity(City currentCity) { this.currentCity = currentCity; }
     public void setGold(double gold) { this.gold = gold; }
 
     public boolean buy(Item item, Market market) {
+        int currentCargoCount = inventory.values().stream().mapToInt(Integer::intValue).sum();
+        if (currentCargoCount >= ship.getCargoCapacity()) {
+            System.out.println("Cargo full! Upgrade your ship to carry more.");
+            return false;
+        }
         double price = market.getPrice(item);
         if (gold < price) {
             System.out.println("Not enough gold!");
