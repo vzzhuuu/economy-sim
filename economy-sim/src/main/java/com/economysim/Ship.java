@@ -42,9 +42,17 @@ public class Ship {
         return true;
     }
 
+    public void loadFromSave(Type type, int cargoCapacity, int range, double upgradeCost) {
+        this.type = type;
+        this.cargoCapacity = cargoCapacity;
+        this.range = range;
+        this.upgradeCost = upgradeCost;
+    }
+
     public int getCargoCapacity() { return cargoCapacity; };
     public int getRange() { return range; }
     public Type getType() { return type; }
+    public double getUpgradeCost() { return upgradeCost; }
 
     @Override
     public String toString() {

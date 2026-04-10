@@ -113,7 +113,7 @@ public class Game {
             int loadChoice = scanner.nextInt();
             if (loadChoice == 1) {
                 int[] dayWrapper = {currentDay};
-                saveManager.load(player, markets, items, cities, dayWrapper);
+                saveManager.load(player, markets, items, cities, dayWrapper, activeContracts);
                 currentDay = dayWrapper[0];
             }
         }
@@ -285,7 +285,7 @@ public class Game {
         switch (choice) {
             case 1 -> System.out.println(player.getShip());
             case 2 -> player.getShip().upgrade(player);
-            case 3 -> saveManager.save(player, markets, currentDay);
+            case 3 -> saveManager.save(player, markets, currentDay, activeContracts, cities);
             case 4 -> resetGame();
             case 5 -> {}
             default -> System.out.println("Invalid choice.");
