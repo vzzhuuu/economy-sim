@@ -3,10 +3,12 @@ package com.economysim;
 import java.util.*;
 
 public class Game {
-    private static final int MAX_DAYS = 60;
+    private static final int MAX_DAYS = 90;
     private static final double WIN_GOLD = 2000.0;
     private static final double STARTING_GOLD = 600.0;
     private static final double TRAVEL_COST = 10.0;
+    private static final int MAX_ACTIVE_CONTRACTS = 3;
+    private static final int CONTRACTS_PER_CITY = 2;
 
     private Player player;
     private List<Item> items;
@@ -18,6 +20,8 @@ public class Game {
     private SaveManager saveManager;
     private boolean gameReset = false;
     private Map<String, Map<String, Integer>> distances;
+    private List<Contract> activeContracts;
+
 
     public Game() {
         this.items = new ArrayList<>();
@@ -27,9 +31,11 @@ public class Game {
         this.scanner = new Scanner(System.in);
         this.currentDay = 1;
         this.saveManager = new SaveManager();
+        this.activeContracts = new ArrayList<>();
         initializeGame();
     }
 
+    // init
     private void initializeGame() {
         // items
         Item rum = new Item("Rum", 40.0);
@@ -56,6 +62,7 @@ public class Game {
 
         player = new Player(STARTING_GOLD, london);
         initializeDistances();
+        generateAllContracts();
     }
 
     private void initializeDistances() {
@@ -97,6 +104,7 @@ public class Game {
         distances.get("Bombay").put("Havana", 3);
     }
 
+    // game loop
     public void start() {
         System.out.println("=== ECONOMY SIM ===");
         if (saveManager.hasSave()) {
@@ -128,6 +136,7 @@ public class Game {
                     market.recordPrices();
                     market.dailyPriceUpdate();
                 }
+                updateContracts();
                 currentDay++;
             }
 
@@ -135,6 +144,7 @@ public class Game {
         System.out.println("Time's up! Final gold: " + player.getGold() + "g");
     }
 
+    // menu methods handler
     private void playDay() {
         player.resetActions();
         printPlayerStats();
@@ -249,14 +259,16 @@ public class Game {
         System.out.println("1. Buy");
         System.out.println("2. Sell");
         System.out.println("3. View market");
-        System.out.println("4. Back");
+        System.out.println("4. Contracts");
+        System.out.println("5. Back");
         System.out.print(">> ");
         int choice = scanner.nextInt();
         switch (choice) {
             case 1 -> handleBuy();
             case 2 -> handleSell();
             case 3 -> printMarket();
-            case 4 -> {}
+            case 4 -> handleContracts();
+            case 5 -> {}
             default -> System.out.println("Invalid choice.");
         }
     }
@@ -320,6 +332,9 @@ public class Game {
                 System.out.println((i+1) + ". " + items.get(i).getName() + ": " + quantity);
             }
         }
+        if (!activeContracts.isEmpty()) {
+            System.out.println(" Contracts: " + activeContracts.size() + "/" + MAX_ACTIVE_CONTRACTS);
+        }
         System.out.println("====================");
     }
 
@@ -336,6 +351,126 @@ public class Game {
             currentDay = 1;
             initializeGame();
             System.out.println("Game reset!");
+        }
+    }
+
+    // contract methods
+    private void generateContractsForCity(City city) {
+        if (city.getAvailableContracts().size() >= CONTRACTS_PER_CITY) return;
+
+        Random rand = new Random();
+        int toGenerate = CONTRACTS_PER_CITY - city.getAvailableContracts().size();
+
+        for (int i = 0; i < toGenerate; i++) {
+            City targetCity;
+            do {
+                targetCity = cities.get(rand.nextInt(cities.size()));
+            } while (targetCity == city);
+
+            Item requiredItem = items.get(rand.nextInt(items.size()));
+            int quantity = 1 + rand.nextInt(3);
+            double reward = Math.round(requiredItem.getBasePrice() * quantity * 1.5 * 100) / 100.0;
+            int deadline = 5 + rand.nextInt(8);
+            city.getAvailableContracts().add(new Contract(targetCity, requiredItem, quantity, reward, deadline));
+        }
+    }
+
+    private void generateAllContracts() {
+        for (City city: cities) {
+            generateContractsForCity(city);
+        }
+    }
+
+    private void updateContracts() {
+        activeContracts.removeIf(c -> {
+           if (c.isExpired()) {
+               System.out.println("CONTRACT EXPIRED: " + c);
+           }
+           return false;
+        });
+        for (Contract c: activeContracts) {
+            if (!c.isCompleted()) c.decrementDeadline();
+        }
+        activeContracts.removeIf(Contract::isCompleted);
+        generateAllContracts();
+    }
+
+    private void handleContracts() {
+        City currentCity = player.getCurrentCity();
+        System.out.println("\n--- Contracts in " + currentCity.getName() + "---");
+
+        List<Contract> available = currentCity.getAvailableContracts();
+        if (available.isEmpty()) {
+            System.out.println("No contracts available here.");
+        } else {
+            System.out.println("Available:");
+            for (int i = 0; i < available.size(); i++) {
+                System.out.println((i + 1) + ". " + available.get(i));
+            }
+        }
+
+        System.out.println("\n--- Your active Contracts (" + activeContracts.size() + "/" + MAX_ACTIVE_CONTRACTS + ") ---");
+        if (activeContracts.isEmpty()) {
+            System.out.println("No active contracts.");
+        } else {
+            for (int i = 0; i < activeContracts.size(); i++) {
+                Contract c = activeContracts.get(i);
+                boolean completable = c.canComplete(player, currentCity);
+                System.out.println((i + 1) + ". " + c + (completable ? " [COMPLETE NOW]" : ""));
+            }
+        }
+
+        System.out.println("\n1. Accept a contract");
+        System.out.println("2. Complete a contract");
+        System.out.println("3. Back");
+        System.out.print(">> ");
+        int choice = scanner.nextInt();
+
+        switch (choice) {
+            case 1 -> acceptContract(available);
+            case 2 -> completeContract();
+            case 3 -> {}
+            default -> System.out.println("Invalid choice.");
+        }
+    }
+
+    private void acceptContract(List<Contract> available) {
+        if (activeContracts.size() >= MAX_ACTIVE_CONTRACTS) {
+            System.out.println("You already have " + MAX_ACTIVE_CONTRACTS + " active contracts!");
+        }
+        if (available.isEmpty()) {
+            System.out.println("No contracts to accept here.");
+        }
+        System.out.println("Enter contract number to accept:");
+        System.out.print(">> ");
+        int choice = scanner.nextInt() - 1;
+        if (choice < 0 || choice >= available.size()) {
+            System.out.println("Invalid choice.");
+            return;
+        }
+        Contract selected = available.remove(choice);
+        activeContracts.add(selected);
+        System.out.println("Contract accepted: " + selected);
+    }
+
+    private void completeContract() {
+        if (activeContracts.isEmpty()) {
+            System.out.println("No active contracts.");
+            return;
+        }
+        System.out.println("Enter contract number to complete:");
+        System.out.print(">> ");
+        int choice = scanner.nextInt() - 1;
+        if (choice < 0 || choice >= activeContracts.size()) {
+            System.out.println("Invalid choice.");
+            return;
+        }
+        Contract selected = activeContracts.get(choice);
+        if (selected.canComplete(player, player.getCurrentCity())) {
+            selected.complete(player);
+            activeContracts.remove(selected);
+        } else {
+            System.out.println("Can't complete here — wrong city or missing items.");
         }
     }
 }
